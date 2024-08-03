@@ -247,6 +247,14 @@ impl StarknetState {
             historic_state: Some(self.historic_state.as_ref().unwrap().clone()),
         }
     }
+
+    pub fn set_nonce_at(
+        &mut self,
+        contract_address: starknet_api::core::ContractAddress,
+        nonce: starknet_api::core::Nonce,
+    ) -> blockifier::state::state_api::StateResult<()> {
+        self.state.set_nonce_at(contract_address, nonce)
+    }
 }
 
 impl State for StarknetState {
