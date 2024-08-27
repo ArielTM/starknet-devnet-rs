@@ -253,15 +253,31 @@ fn convert_sierra_to_codegen(
     })
 }
 
+fn json_sierra_class_to_blockifier_class(
+    json_value: serde_json::Value,
+) -> Result<blockifier::execution::contract_class::ContractClass, Error> {
+    let casm_json = usc::compile_contract(json_value)
+        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+
+    let casm = serde_json::from_value::<CasmContractClass>(casm_json)
+        .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
+
+    let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
+        casm.try_into().map_err(|_| Error::ProgramError)?;
+
+    Ok(blockifier::execution::contract_class::ContractClass::V1(blockifier_contract_class))
+}
+
 pub fn convert_codegen_to_blockifier_compiled_class(
     class: CodegenContractClass,
 ) -> Result<blockifier::execution::contract_class::ContractClass, Error> {
     Ok(match class {
         CodegenContractClass::Sierra(_) => {
             let json_value = serde_json::to_value(class).map_err(JsonError::SerdeJsonError)?;
-            let devnet_class = deserialize_to_sierra_contract_class(json_value.into_deserializer())
-                .map_err(JsonError::SerdeJsonError)?;
-            ContractClass::Cairo1(devnet_class).try_into()?
+            // let devnet_class = deserialize_to_sierra_contract_class(json_value.into_deserializer())
+            //     .map_err(JsonError::SerdeJsonError)?;
+            // ContractClass::Cairo1(devnet_class).try_into()?
+            json_sierra_class_to_blockifier_class(json_value)?
         }
         CodegenContractClass::Legacy(_) => {
             let class_jsonified =
@@ -365,8 +381,8 @@ mod tests {
     /// Then it takes the same artifact as a `DeprecatedContractClass` and generates its class hash.
     /// The test checks if both hashes are the same.
     #[test]
-    fn cairo_0_contract_class_hash_generated_successfully_and_its_the_same_as_raw_json_contract_class_hash()
-     {
+    fn cairo_0_contract_class_hash_generated_successfully_and_its_the_same_as_raw_json_contract_class_hash(
+    ) {
         let contract_class = Cairo0Json::raw_json_from_path(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_data/ERC20_starknet_js.casm"
