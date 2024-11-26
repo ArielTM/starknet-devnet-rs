@@ -31,7 +31,7 @@ pub trait CustomStateReader {
     /// forked side and a validation cannot be skipped when creating a transaction with
     /// impersonated account
     fn is_contract_deployed_locally(&self, contract_address: ContractAddress)
-    -> DevnetResult<bool>;
+        -> DevnetResult<bool>;
     fn is_contract_declared(&self, class_hash: ClassHash) -> bool;
 }
 
@@ -248,6 +248,14 @@ impl StarknetState {
             rpc_contract_classes: self.rpc_contract_classes.clone(),
             historic_state: self.historic_state.clone(),
         }
+    }
+
+    pub fn set_nonce_at(
+        &mut self,
+        contract_address: starknet_api::core::ContractAddress,
+        nonce: starknet_api::core::Nonce,
+    ) -> blockifier::state::state_api::StateResult<()> {
+        self.state.set_nonce_at(contract_address, nonce)
     }
 }
 
